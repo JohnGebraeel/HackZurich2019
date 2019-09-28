@@ -36,3 +36,4 @@ build/
 
 # Nodejs
 node_modules/
+*.swp
