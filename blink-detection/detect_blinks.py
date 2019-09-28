@@ -31,11 +31,11 @@ def eye_aspect_ratio(eye):
         return ear
 
 def mouth_distance(mouth):
-    print(mouth)
+    # print(mouth)
     return dist.euclidean(mouth[3], mouth[9])
 
 def nose_range(nose):
-    print(nose)
+    # print(nose)
     return dist.euclidean(nose[0], nose[1])
 
 # construct the argument parse and parse the arguments
@@ -51,12 +51,14 @@ args = vars(ap.parse_args())
 # frames the eye must be below the threshold
 EYE_AR_THRESH = 0.3
 EYE_AR_CONSEC_FRAMES = 3
+EYES_STANDARD = 20
+YAWNS_STANDARD = 5
 
 # initialize the frame counters and the total number of blinks
-COUNTER = 0
+COUNT_EYES = 0
 TOTAL = 0
 SUM_BASE_RATIOS = 0
-BASE_YAWN_COUNTER = 200 
+BASE_YAWN_COUNT_EYES = 200
 AVERAGE_RATIO = 0.0
 TIME_CYCLE = 500
 
@@ -83,6 +85,11 @@ fileStream = False
 time.sleep(1.0)
 
 counter = 0 # general counter 
+track_eyes = [0]*TIME_CYCLE
+track_yawns = [0]*TIME_CYCLE
+num_eyes = 0
+num_yawns = 0
+
 # loop over frames from the video stream
 while True:
         # if this is a file video stream, then we need to check if
@@ -102,8 +109,8 @@ while True:
 
         # loop over the face detections
         for rect in rects:
-                IS_YAWN = False
-                IS_TIRED = False
+                IS_YAWN = 0 
+                IS_EYES = 0
                 # determine the facial landmarks for the face region, then
                 # convert the facial landmark (x, y)-coordinates to a NumPy
                 # array
@@ -137,33 +144,33 @@ while True:
                 # check to see if the eye aspect ratio is below the blink
                 # threshold, and if so, increment the blink frame counter
                 if ear < EYE_AR_THRESH:
-                        COUNTER += 1
-
+                        COUNT_EYES += 1
                 # otherwise, the eye aspect ratio is not below the blink
                 # threshold
                 else:
                         # if the eyes were closed for a sufficient number of
                         # then increment the total number of blinks
-                        if COUNTER >= EYE_AR_CONSEC_FRAMES:
+                        if COUNT_EYES >= EYE_AR_CONSEC_FRAMES:
                                 TOTAL += 1
+                                IS_EYES = 1
 
                         # reset the eye frame counter
-                        COUNTER = 0
+                        COUNT_EYES = 0
 
-                if counter < BASE_YAWN_COUNTER:
+                if counter < BASE_YAWN_COUNT_EYES:
                     SUM_BASE_RATIOS += mouthDIS / nose_range(nose)
-                elif counter == BASE_YAWN_COUNTER:
-                    # After BASE_YAWN_COUNTER seconds, calculate average ratios 
-                    AVERAGE_RATIO = SUM_BASE_RATIOS / BASE_YAWN_COUNTER
+                elif counter == BASE_YAWN_COUNT_EYES:
+                    # After BASE_YAWN_COUNT_EYES seconds, calculate average ratios 
+                    AVERAGE_RATIO = SUM_BASE_RATIOS / BASE_YAWN_COUNT_EYES
                     print("average_ratio = ", AVERAGE_RATIO)
-                elif counter > BASE_YAWN_COUNTER and mouthDIS / nose_range(nose) > 350*AVERAGE_RATIO/100:
-                    IS_YAWN = True
+                elif counter > BASE_YAWN_COUNT_EYES and mouthDIS / nose_range(nose) > 350*AVERAGE_RATIO/100:
+                    IS_YAWN = 1
 
                 # draw the total number of blinks on the frame along with
                 # the computed eye aspect ratio for the frame
                 cv2.putText(frame, "Time: {}".format(counter), (130, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                if counter < BASE_YAWN_COUNTER:
+                if counter < BASE_YAWN_COUNT_EYES:
                     cv2.putText(frame, "Calibration time", (50, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                 cv2.putText(frame, "Blinks: {}".format(TOTAL), (10, 30),
@@ -177,8 +184,30 @@ while True:
                 if IS_YAWN:
                     cv2.putText(frame, "The user is yawning!!!", (10, 200),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                    
+                
+                # If greater than time cycle, update every second 
+                if counter >= TIME_CYCLE:
+                    num_eyes = num_eyes - track_eyes[0] + IS_EYES
+                    num_yawns = num_yawns - track_yawns[0] + IS_YAWN
+                    track_eyes.pop(0)                    
+                    track_yawns.pop(0)
+                    track_eyes.append(IS_EYES)
+                    track_yawns.append(IS_YAWN)
+                else:
+                    num_eyes = num_eyes + IS_EYES
+                    num_yawns = num_yawns + IS_YAWN
+                    track_eyes[counter] = IS_EYES
+                    track_yawns[counter] = IS_YAWN
+                if num_eyes > EYES_STANDARD or num_yawns > YAWNS_STANDARD or (num_eyes + num_yawns)/2 > (EYES_STANDARD + YAWNS_STANDARD)/2:
+                        cv2.putText(frame, "You're getting tired!!", (200, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        print("You're tired!")
+                print("counter = ", counter)
+                print("num eyes = ", num_eyes)
+                print("num yawns = ", num_yawns)
                 counter += 1
+                if(counter == 100):
+                    break
 
  
         # show the frame
