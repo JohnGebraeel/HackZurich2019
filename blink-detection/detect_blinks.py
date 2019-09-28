@@ -13,6 +13,23 @@ import imutils
 import time
 import dlib
 import cv2
+import gi
+gi.require_version('Notify', '0.7')
+from gi.repository import Notify
+
+def notify():
+    # One time initialization of libnotify
+    Notify.init("My Program Name")
+
+    # Create the notification object
+    summary = "Take some rest!"
+    body = "You are getting TIRED. Take a rest and come back to increase your productivity!!!"
+    notification = Notify.Notification.new(
+        summary,
+        body, # Optional
+        )
+    # Actually show on screen
+    notification.show()
 
 def eye_aspect_ratio(eye):
         # compute the euclidean distances between the two sets of
@@ -52,7 +69,8 @@ args = vars(ap.parse_args())
 EYE_AR_THRESH = 0.3
 EYE_AR_CONSEC_FRAMES = 3
 EYES_STANDARD = 20
-YAWNS_STANDARD = 5
+YAWNS_STANDARD = 25
+TIRED = 0
 
 # initialize the frame counters and the total number of blinks
 COUNT_EYES = 0
@@ -199,25 +217,29 @@ while True:
                     track_eyes[counter] = IS_EYES
                     track_yawns[counter] = IS_YAWN
                 if num_eyes > EYES_STANDARD or num_yawns > YAWNS_STANDARD or (num_eyes + num_yawns)/2 > (EYES_STANDARD + YAWNS_STANDARD)/2:
-                        cv2.putText(frame, "You're getting tired!!", (200, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                        print("You're tired!")
+                    cv2.putText(frame, "You're getting TIRED!!", (200, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    TIRED = 1
+                    print("You're TIRED!")
+                else:
+                    TIRED = 0
                 print("counter = ", counter)
                 print("num eyes = ", num_eyes)
                 print("num yawns = ", num_yawns)
                 counter += 1
                 if(counter == 100):
                     break
-
- 
         # show the frame
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
- 
+
         # if the `q` key was pressed, break from the loop
         if key == ord("q"):
                 break
         
+        if counter % 1200 == 0 and TIRED:
+            notify()
+
 # do a bit of cleanup
 cv2.destroyAllWindows()
 vs.stop()
