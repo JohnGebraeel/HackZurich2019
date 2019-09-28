@@ -1,6 +1,0 @@
-{
-    "short_name": "devmon",
-    "name": "Logitech Input Device Monitor",
-    "start_url": "index.html",
-    "display": "standalone"
-}
