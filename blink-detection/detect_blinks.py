@@ -45,7 +45,7 @@ EYE_AR_THRESH = 0.3
 EYE_AR_CONSEC_FRAMES = 3
 
 # initialize the frame counters and the total number of blinks
-COUNTER = 0
+BLINK_COUNTER = 0
 TOTAL = 0
 
 # initialize dlib's face detector (HOG-based) and then create
@@ -59,6 +59,7 @@ predictor = dlib.shape_predictor(args["shape_predictor"])
 (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
 (mouthStart, mouthEnd) = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
+(noseStart, noseEnd) = face_utils.FACIAL_LANDMARKS_IDXS["nose"]
 
 # start the video stream thread
 print("[INFO] starting video stream thread...")
@@ -101,6 +102,7 @@ while True:
                 leftEAR = eye_aspect_ratio(leftEye)
                 rightEAR = eye_aspect_ratio(rightEye)
                 mouthWidth = shape[mouthStart:mouthEnd]
+                noseWidth = shape[noseStart:noseEnd]
 
                 # average the eye aspect ratio together for both eyes
                 ear = (leftEAR + rightEAR) / 2.0
@@ -110,25 +112,27 @@ while True:
                 leftEyeHull = cv2.convexHull(leftEye)
                 rightEyeHull = cv2.convexHull(rightEye)
                 mouthHull = cv2.convexHull(mouthWidth)
+                noseHull = cv2.convexHull(noseWidth)
                 cv2.drawContours(frame, [leftEyeHull], -1, (0, 255, 0), 1)
                 cv2.drawContours(frame, [rightEyeHull], -1, (0, 255, 0), 1)
                 cv2.drawContours(frame, [mouthHull], -1, (0, 255, 0), 1)
+                cv2.drawContours(frame, [noseHull], -1, (0, 255, 0), 1)
 
                 # check to see if the eye aspect ratio is below the blink
                 # threshold, and if so, increment the blink frame counter
                 if ear < EYE_AR_THRESH:
-                        COUNTER += 1
+                        BLINK_COUNTER += 1
 
                 # otherwise, the eye aspect ratio is not below the blink
                 # threshold
                 else:
                         # if the eyes were closed for a sufficient number of
                         # then increment the total number of blinks
-                        if COUNTER >= EYE_AR_CONSEC_FRAMES:
+                        if BLINK_COUNTER >= EYE_AR_CONSEC_FRAMES:
                                 TOTAL += 1
 
                         # reset the eye frame counter
-                        COUNTER = 0
+                        BLINK_COUNTER = 0
 
                 # draw the total number of blinks on the frame along with
                 # the computed eye aspect ratio for the frame
