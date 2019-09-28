@@ -13,7 +13,6 @@ import imutils
 import time
 import dlib
 import cv2
-import gi
 
 from plyer import notification
 
