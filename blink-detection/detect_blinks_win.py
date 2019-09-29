@@ -230,7 +230,7 @@ while True:
         if key == ord("q"):
                 break
         
-        if counter % 1200 == 0 and TIRED:
+        if counter % 700 == 0 and TIRED:
             notify()
 
 # do a bit of cleanup
